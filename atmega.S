@@ -26,7 +26,7 @@
 // Make them accessible from the Arduino sketch so we can call them
 .global initPorts
 .global watchBus
-
+.extern uart_tx
 
 // A bit like setup()
 initPorts:
@@ -74,30 +74,62 @@ watchBus:
   ldi r17, 0x00 ; ddr input
   ldi r18, 0xff ; ddr output
   ldi r19, MASK_MREQ_IOREQ  ; test condition
+  ldi r20, 0x03 ; no MREQ or IOREQ
   ldi Zh,(DBUSPINL>>8)  ; port addr
   ldi Zl,(DBUSPINL&0xFF); port addr
   ldi Xh,hi8(eprom) ; base of rom
   ldi Xl,lo8(eprom) ; base of rom
 watchBus_loop:
-  in r21, PINB ; source for MASK_MREQ_IOREQ  
-  and r21, r19
-  sub r21, r19
-  breq watchBus_loop  ; loop until IORQ or MREQ low
-  // Is memory read request
-  cbi PORTG, WAIT_PIN        ; Set /WAIT LOW immediately
-  /*
-  in Yh,PINC             ; get Addr
-  in Yl,PINA             ; get Addr
-  add Yl,Xl ; add rom base addr
+  in r21, PINB        ; source for MASK_MREQ_IOREQ  
+  sbrs r21, IORQ_PIN ; skip next instruction of bit is high
+  rjmp watchBus_io    ; is IOREQ
+  sbrc r21, MREQ_PIN  ; skip out of loop if MREQ is low
+  rjmp watchBus_loop  ; bit is high, stay in loop
+  cbi PORTG, WAIT_PIN ; Set /WAIT LOW immediately  
+  in r21, PING        ; souce for WR/RD
+  sbrc r21,RD_PIN    ; If RD pin low, skip next jump and do mem read
+  rjmp watchBus_memwrite
+  ; set data output for read request  
+  in Yh,PINC   ; get Addr
+  in Yl,PINA   ; get Addr
+  add Yl,Xl    ; add rom base addr
   adc Yh,Xh
   ld r16, Y
-  std Z+2,r16 ; PORTL Set data bus value
-  std Z+1,r18 ; DDRL Assert data bus  
-  std Z+1,r17 ; release data baus
-  */
-  sbi PORTG, WAIT_PIN        ; Set /WAIT HI immediately
-  ret
+  
+  ldi r16, 0xaa
+  call uart_tx  ; debug
+  ldi r16, 0x11
+  call uart_tx  ; debug
+  ldi r16, 0x22
+  call uart_tx  ; debug
+  ldi r16, 0x44
+  call uart_tx  ; debug
+  ldi r16, 0x88
+  call uart_tx  ; debug
+  ldi r16, 0xFF
+  call uart_tx  ; debug
+  
+  std Z+2,r16  ; PORTL Set data bus value  
+  sts _SFR_IO_ADDR(DDRL), r18 ; assert data line
 
+  rjmp watchBus_end
+watchBus_memwrite:  
+  nop   ; write to memory not supported
+  rjmp watchBus_end
+watchBus_io:
+  cbi PORTG, WAIT_PIN ; Set /WAIT LOW immediately  
+  ; tottle data bit to indicate IO
+  sts _SFR_IO_ADDR(DDRL), r18 ; assert data line
+  ;
+  sts _SFR_IO_ADDR(PORTL), r18
+  sts _SFR_IO_ADDR(PORTL), r16
+  sts _SFR_IO_ADDR(PORTL), r18
+  sts _SFR_IO_ADDR(PORTL), r16
+  sts _SFR_IO_ADDR(PORTL), r18
+watchBus_end:
+  sts _SFR_IO_ADDR(DDRL), r17 ; set high impedence data lines
+  sbi PORTG, WAIT_PIN         ; Set /WAIT HI immediately
+  ret
 .data
 // Contents of memory
 eprom:  .byte 0x21

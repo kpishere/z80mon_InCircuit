@@ -1,4 +1,4 @@
-//#include "src/eprom.h"
+#include "src/eprom.h"
 
 /*
 Target: Arduino Mega 2560
@@ -53,11 +53,13 @@ byte io_SC16C550B[] = {0,0,0,0 ,0,0,0,0};
 extern "C" {
   void initPorts();
   void watchBus();
+  void uart_init();
 }
 
 // the setup function runs once when you press reset or power the board
 void setup() {
   initPorts();
+  uart_init();
 }
 
 // the loop is empty, because this is interrupt-driven
