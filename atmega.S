@@ -75,8 +75,6 @@ watchBus:
   ldi r18, 0xff ; ddr output
   ldi r19, MASK_MREQ_IOREQ  ; test condition
   ldi r20, 0x03 ; no MREQ or IOREQ
-  ldi Zh,(DBUSPINL>>8)  ; port addr
-  ldi Zl,(DBUSPINL&0xFF); port addr
   ldi Xh,hi8(eprom) ; base of rom
   ldi Xl,lo8(eprom) ; base of rom
 watchBus_loop:
@@ -90,49 +88,53 @@ watchBus_loop:
   sbrc r21,RD_PIN    ; If RD pin low, skip next jump and do mem read
   rjmp watchBus_memwrite
   ; set data output for read request  
-  in Yh,PINC   ; get Addr
-  in Yl,PINA   ; get Addr
-  add Yl,Xl    ; add rom base addr
-  adc Yh,Xh
-  ld r16, Y
-  
-  ldi r16, 0xaa
-  call uart_tx  ; debug
-  ldi r16, 0x11
-  call uart_tx  ; debug
-  ldi r16, 0x22
-  call uart_tx  ; debug
-  ldi r16, 0x44
-  call uart_tx  ; debug
-  ldi r16, 0x88
-  call uart_tx  ; debug
-  ldi r16, 0xFF
-  call uart_tx  ; debug
-  
+  in Zh,PINC   ; get Addr
+  in Zl,PINA   ; get Addr  
+  add Zl,Xl    ; add rom base addr
+  adc Zh,Xh  
+  lpm r16, Z   ; get eprom memory in register
+  ;
+  ; call uart_tx  ; debug - byte read is in r16
+  ;
+  ; Set Z pointer for output register
+  ldi Zh,(DBUSPINL>>8)  ; port addr
+  ldi Zl,(DBUSPINL&0xFF); port addr
+  ;
   std Z+2,r16  ; PORTL Set data bus value  
   sts _SFR_IO_ADDR(DDRL), r18 ; assert data line
-
-  rjmp watchBus_end
+  ;
+  ; fall thru as nonthing done with memwrite
 watchBus_memwrite:  
-  nop   ; write to memory not supported
+  ;
+  ; write to memory not supported
+  ; 
+  sbi PORTG, WAIT_PIN ; Set /WAIT HI
+  ; Wait until MREQ or IORQ ends
+watchBus_MREQ_done:
+  in r21, PINB        ; source for MASK_MREQ_IOREQ  
+  sbrs r21, MREQ_PIN  ; skip out of loop if MREQ is high
+  rjmp watchBus_MREQ_done  ; bit is low, stay in loop  
   rjmp watchBus_end
 watchBus_io:
   cbi PORTG, WAIT_PIN ; Set /WAIT LOW immediately  
-  ; tottle data bit to indicate IO
-  sts _SFR_IO_ADDR(DDRL), r18 ; assert data line
   ;
-  sts _SFR_IO_ADDR(PORTL), r18
-  sts _SFR_IO_ADDR(PORTL), r16
-  sts _SFR_IO_ADDR(PORTL), r18
-  sts _SFR_IO_ADDR(PORTL), r16
-  sts _SFR_IO_ADDR(PORTL), r18
+  ; TODO -- stuff like read/write serial port 
+  ;
+  sbi PORTG, WAIT_PIN ; Set /WAIT HI
+  ; Wait until IORQ ends
+watchBus_IORQ_done:
+  in r21, PINB        ; source for MASK_MREQ_IOREQ  
+  sbrs r21, IORQ_PIN ; skip next instruction of bit is high
+  rjmp watchBus_IORQ_done 
+  ; fall thru to end  
 watchBus_end:
-  sts _SFR_IO_ADDR(DDRL), r17 ; set high impedence data lines
-  sbi PORTG, WAIT_PIN         ; Set /WAIT HI immediately
+  sts _SFR_IO_ADDR(DDRL), r17 ; set high impedence data lines, read is done
+  ;
+  ; debug show end where data lines are released 
+  ;cbi   PORTD, PIND1
+  ;sbi   PORTD, PIND1
+  ;
   ret
-.data
+
 // Contents of memory
-eprom:  .byte 0x21
-        .byte 0x0a
-        .byte 0x00
-        .byte 0x76
+eprom:  .byte 0x21,0x0a,0x00,0x76
