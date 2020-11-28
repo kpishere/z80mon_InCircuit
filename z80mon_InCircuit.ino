@@ -23,6 +23,9 @@ Arduino PB1 Pin 52 <---> Z80 /IORQ CPU Pin 20
 Data Lines (In/Out):
 Arduino PL0-7 Pin 49..42   <--->   Z80 D0..D7 Eprom Pins 11-13,15-19
 
+Clock signal:
+Arduino PB5 Pin 11 <---> Z80 CLK Pin 6
+
 ==================================================
 * - If A14,A15 are NOT connected, Eprom /CE must be connected 
   - If A14,A15 ARE connected, CPU /MREQ must be connected 

@@ -62,9 +62,25 @@ WDT_off:
   ldi r16, (0<<WDE)
   sts WDTCSR, r16
   out SREG, r17   ; restore state, including interrupt if it was enabled
-
-  cli               ; Disable interrupts -- want maximum response when watching following pins
-
+PWM_timer:
+  ; 
+  ldi r16, 0x00       ; Clear timer config
+  ldi r17, 7          ; toggle after counting to 8
+  mov r18, r16  
+  ori r18, ((1<<COM1A0))            ; Toggle OC1A on Compare Match.
+  mov r19, r16  
+  ori r19, ((1<<WGM12)|(1<<CS10)) ; CTC mode | clock on, no pre-scaler  
+  sts _SFR_IO_ADDR(TCCR1A), r16 ; clear
+  sts _SFR_IO_ADDR(TCCR1A), r18 ; set new value
+  sts _SFR_IO_ADDR(TCCR1B), r16 ; clear
+  sts _SFR_IO_ADDR(TCCR1B), r19 ; set new value
+  sts _SFR_IO_ADDR(TCNT1), r16  ; clear
+  sts _SFR_IO_ADDR(OCR1AH), r16  ; Set output compare value
+  sts _SFR_IO_ADDR(OCR1AL), r17  ; 
+  ;
+  ; Update port or output
+  sbi _SFR_IO_ADDR(DDRB), DDB5  ; Pin 11 on atmel2560
+  ;
   ret         ; return to calling program
 
 // Watch **very closely** for /MREQ or /IOREQ to go low, set wait state, return
