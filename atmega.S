@@ -67,19 +67,19 @@ PWM_timer:
   ldi r16, 0x00       ; Clear timer config
   ldi r17, 7          ; toggle after counting to 8
   mov r18, r16  
-  ori r18, ((1<<COM1A0))            ; Toggle OC1A on Compare Match.
+  ori r18, ((1<<COM3B0))            ; Toggle OC1A on Compare Match.
   mov r19, r16  
-  ori r19, ((1<<WGM12)|(1<<CS10)) ; CTC mode | clock on, no pre-scaler  
-  sts _SFR_IO_ADDR(TCCR1A), r16 ; clear
-  sts _SFR_IO_ADDR(TCCR1A), r18 ; set new value
-  sts _SFR_IO_ADDR(TCCR1B), r16 ; clear
-  sts _SFR_IO_ADDR(TCCR1B), r19 ; set new value
-  sts _SFR_IO_ADDR(TCNT1), r16  ; clear
-  sts _SFR_IO_ADDR(OCR1AH), r16  ; Set output compare value
-  sts _SFR_IO_ADDR(OCR1AL), r17  ; 
+  ori r19, ((1<<WGM32)|(1<<CS30)) ; CTC mode | clock on, no pre-scaler  
+  sts _SFR_IO_ADDR(TCCR3A), r16 ; clear
+  sts _SFR_IO_ADDR(TCCR3A), r18 ; set new value
+  sts _SFR_IO_ADDR(TCCR3B), r16 ; clear
+  sts _SFR_IO_ADDR(TCCR3B), r19 ; set new value
+  sts _SFR_IO_ADDR(TCNT3), r16  ; clear
+  sts _SFR_IO_ADDR(OCR3AH), r16  ; Set output compare value
+  sts _SFR_IO_ADDR(OCR3AL), r17  ; 
   ;
   ; Update port or output
-  sbi _SFR_IO_ADDR(DDRB), DDB5  ; Pin 11 on atmel2560
+  sbi _SFR_IO_ADDR(DDRE), DDE4  ; Pin 2 on atmel2560
   ;
   ret         ; return to calling program
 

@@ -24,7 +24,7 @@ Data Lines (In/Out):
 Arduino PL0-7 Pin 49..42   <--->   Z80 D0..D7 Eprom Pins 11-13,15-19
 
 Clock signal:
-Arduino PB5 Pin 11 <---> Z80 CLK Pin 6
+Arduino PE4 Pin 2 <---> Z80 CLK Pin 6
 
 Debug TX out:
 Arduino PD1 Pin 20 <---> Logic analyzer
